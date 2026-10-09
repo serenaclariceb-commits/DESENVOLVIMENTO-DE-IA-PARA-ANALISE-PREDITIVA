@@ -1,0 +1,9 @@
+{
+    "python-envs.pythonProjects": [
+        {
+            "path": "preditor-falhas-industria/data",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
+}
