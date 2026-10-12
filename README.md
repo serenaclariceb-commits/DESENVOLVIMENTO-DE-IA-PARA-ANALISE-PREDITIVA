@@ -1,2 +1,1 @@
-# DESENVOLVIMENTO DE IA PARA ANALISE PREDITIVA 
-Projeto avaliativo-SENAI
+[README.md](https://github.com/user-attachments/files/33350444/README.md)
