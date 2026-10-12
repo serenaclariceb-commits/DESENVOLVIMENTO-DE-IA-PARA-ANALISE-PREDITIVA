@@ -21,18 +21,37 @@ from sklearn.tree import DecisionTreeClassifier
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
+TARGET_COLUMN = "falha_maquina"
 
 
 def find_dataset_path() -> Path:
-    candidates = [
-        DATA_DIR / "manutencao_preditiva.csv",
-        DATA_DIR / '"manutencao_preditiva.csv"',
-        DATA_DIR / "'manutencao_preditiva.csv'",
-        BASE_DIR / "manutencao_preditiva.csv",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path
+    search_roots = [DATA_DIR, BASE_DIR]
+    candidate_names = {
+        "manutencao_preditiva.csv",
+        '"manutencao_preditiva.csv"',
+        "'manutencao_preditiva.csv'",
+    }
+
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            normalized_name = path.name.strip('"\'')
+            if path.name in candidate_names or normalized_name == "manutencao_preditiva.csv":
+                return path
+
+    for root in search_roots:
+        if root.exists():
+            matches = sorted(
+                root.rglob("*"),
+                key=lambda item: item.name.lower(),
+            )
+            for path in matches:
+                if path.is_file() and "manutencao_preditiva" in path.name.lower():
+                    return path
+
     raise FileNotFoundError(
         "Arquivo de dados não encontrado. Coloque o CSV em 'preditor-falhas-industria/data/'"
     )
@@ -41,10 +60,15 @@ def find_dataset_path() -> Path:
 def load_dataset() -> pd.DataFrame:
     path = find_dataset_path()
     df = pd.read_csv(path)
+    if df.empty:
+        raise ValueError(f"O dataset em '{path}' está vazio.")
     return df
 
 
 def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        raise ValueError("O dataframe de entrada está vazio.")
+
     df = df.drop_duplicates().copy()
 
     if "velocidade_rotacao_rpm" in df.columns and "torque_nm" in df.columns:
@@ -58,13 +82,17 @@ def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
     if "tipo" in df.columns:
         df = pd.get_dummies(df, columns=["tipo"], dtype=int)
 
+    if TARGET_COLUMN not in df.columns:
+        raise ValueError(
+            "O dataset não contém a coluna alvo 'falha_maquina'."
+        )
+
     return df
 
 
 def build_model_data(df: pd.DataFrame):
-    target_col = "falha_maquina"
     excluded_cols = {
-        target_col,
+        TARGET_COLUMN,
         "udi",
         "id_produto",
         "falha_twf",
@@ -73,11 +101,17 @@ def build_model_data(df: pd.DataFrame):
         "falha_osf",
         "falha_rnf",
     }
-    feature_cols = [
-        col for col in df.columns if col not in excluded_cols
-    ]
+    feature_cols = [col for col in df.columns if col not in excluded_cols]
+    if not feature_cols:
+        raise ValueError("Nenhuma coluna de característica foi encontrada no dataset.")
+
     X = df[feature_cols]
-    y = df[target_col]
+    y = df[TARGET_COLUMN]
+
+    if y.nunique() < 2:
+        raise ValueError(
+            "A coluna alvo 'falha_maquina' precisa conter pelo menos duas classes para treinar e avaliar o modelo."
+        )
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -88,7 +122,9 @@ def build_model_data(df: pd.DataFrame):
     )
 
     imputation_values = X_train.median()
-    columns_without_median = imputation_values[imputation_values.isna()].index.tolist()
+    columns_without_median = (
+        imputation_values[imputation_values.isna()].index.tolist()
+    )
     if columns_without_median:
         raise ValueError(
             "Não foi possível calcular a mediana para estas colunas do treino: "
