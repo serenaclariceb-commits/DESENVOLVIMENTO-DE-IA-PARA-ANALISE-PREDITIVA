@@ -1,2 +1,1 @@
-# DESENVOLVIMENTO DE IA PARA ANALISE PREDITIVA 
-Projeto avaliativo-SENAI
+atualização video
