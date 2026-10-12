@@ -78,4 +78,4 @@ Testar outros modelos e estratégias de balanceamento, comparando-os com o basel
 Vídeo de apresentação
 
 Link do Google Drive:
-https://drive.google.com/file/d/1nhhbdrvRYhG0TeORQNgmXJYaV8lm7CS0/view?usp=sharing
+https://drive.google.com/drive/folders/1jMIVjKJ4X_kT72fDrPSfXkfnFwfZPWXB?usp=sharing
